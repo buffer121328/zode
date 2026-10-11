@@ -69,3 +69,9 @@ packages/desktop/.e2e-artifacts/
 packages/desktop/.e2e-cache/
 packages/desktop/.e2e-network-capture/
 .zcode-runtime/
+
+# 桌面 dev 实例的隔离数据目录（dev-desktop-env.mjs 注入 ZCODE_DATA_BASE_DIR）。
+.zcode-dev-data/
+
+# node-repl-host 的 TS 声明产物（typecheck 时生成，不入库）。
+apps/zcode-cli/packages/node-repl-host/dist-types/

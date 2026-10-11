@@ -35,7 +35,6 @@ import {
 import type { CodingPlanStatusPanelViewState } from "./codingPlanStatusPanelViewState.js";
 import { CodingPlanStatusMeta, StartPlanStatusMeta } from "./CodingPlanStatusMeta.js";
 import { CodingPlanStatusActions } from "./CodingPlanStatusActions.js";
-import { BrowserOAuthLoginButton } from "./BrowserOAuthLoginButton.js";
 import type { CodingPlanLoginOptions } from "./codingPlanPricingCards.js";
 import type { PurchaseAudience } from "./codingPlanEnterpriseTiers.js";
 import { StartPlanCard } from "./StartPlanCard.js";
@@ -397,15 +396,9 @@ export function CodingPlanStatusPanel({
     usageDetailsVisible &&
     isPurchased &&
     (isStartPlanProvider || hasDisplayableCodingPlanUsageLimits(quotaLimits));
-  // 同 family 已登录时默认登录动作只刷新；凭据失败后的主动恢复必须强制进入 OAuth。
-  // 浏览器授权登录与 API Key 配置并排；只在支持 OAuth 的 provider 上出现。
-  const browserLoginAction = providerIcon ? (
-    <BrowserOAuthLoginButton
-      oauthProviderId={providerIcon}
-      providerName={providerName}
-      disabled={effectiveViewState.loginLoading}
-    />
-  ) : null;
+  // 二开版：登录/OAuth 入口已移除（自用不需要登录），浏览器授权登录按钮不再渲染。
+  // 保留 providerIcon 判断逻辑本身在下方其它展示处使用；这里恒为 null。
+  const browserLoginAction = null;
   const trailingAction = reloginVisible ? (
     <div className="flex flex-wrap items-center justify-end gap-2">
       <Button

@@ -41,7 +41,10 @@ export function shouldShowRootStartupLoading(state: RootStartupLoadingVisibility
 }
 
 export function shouldEnableProviderAvailabilityLoginEntryGuard(): boolean {
-  return true;
+  // 二开版：本产品自用、不使用官方账户体系，启动时不再引导登录/连接账号。
+  // 模型供应商改由「设置 → 模型设置」里自行配置 API Key 完成（保留 fully config 能力）。
+  // 原实现恒 true 会在首启无供应商时强制拉起 WelcomeScreen 登录墙，故关闭。
+  return false;
 }
 
 export function shouldResolveProviderStartupState(state: ProviderStartupResolutionState): boolean {

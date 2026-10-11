@@ -15,6 +15,16 @@ if (requestedEnv !== "test" && requestedEnv !== "production") {
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const pnpmCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 
+// 开发实例必须与用户日常使用的 ZCode 数据完全隔离：显式指定 ZCODE_DATA_BASE_DIR，
+// 数据落在 {repoRoot}/.zcode-dev-data（而非 ~/.zcode）。仅在调用方（如 mise.toml 的
+// tasks.dev）未提供该变量时兜底注入，避免覆盖调用方自定义的隔离目录。
+// ZCODE_DATA_BASE_DIR 隔离 host 侧数据根（任务/凭据/v2 数据库）；
+// ZCODE_DESKTOP_HOME_DIR 隔离 setting.json 引导路径与 Electron home
+// （settingService 按 {该目录}/.zcode/v2/setting.json 解析）。两者必须指向同一目录，
+// 否则会出现"setting.json 读真实 HOME、业务数据写隔离目录"的分裂状态。
+const devDataBaseDir = process.env.ZCODE_DATA_BASE_DIR?.trim() || resolve(repoRoot, ".zcode-dev-data");
+const devHomeDir = process.env.ZCODE_DESKTOP_HOME_DIR?.trim() || devDataBaseDir;
+
 function run(command, args) {
   return new Promise((resolveRun, rejectRun) => {
     // Windows 下 shell:true 只按空格拼接参数；仓库路径含空格（如 E:\Z Code\...）时
@@ -27,6 +37,8 @@ function run(command, args) {
           ...process.env,
           ZCODE_ENV: requestedEnv,
           ZCODE_DESKTOP_AGENT_BYTECODE: agentBytecode ? "1" : "0",
+          ZCODE_DATA_BASE_DIR: devDataBaseDir,
+          ZCODE_DESKTOP_HOME_DIR: devHomeDir,
         },
         process.execPath,
       ),

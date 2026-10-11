@@ -20,7 +20,6 @@ import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { SSHDialog } from "@/SSHDialog.js";
 import { SettingsPage } from "@/SettingsPage.js";
 import { CodingPlanUpgradeDialogProvider } from "@/settings/CodingPlanUpgradeDialogProvider.js";
-import { WelcomeScreen, type LoginCompleteReason } from "@/WelcomeScreen.js";
 import { setDefaultFileDisplayBasePath } from "@/lib/fileDisplay.js";
 import { countAllUnreadTasks } from "@/lib/unreadTaskCount.js";
 import {
@@ -48,7 +47,6 @@ import { useRootProviderStateRefresh } from "@/root/useRootProviderStateRefresh.
 import { useModelSelectionServiceView } from "@/hooks/useModelSelectionView.js";
 import { useRootProviderSettingsSnapshot } from "@/root/useRootProviderSettingsSnapshot.js";
 import { useRootOAuthEffects } from "@/root/useRootOAuthEffects.js";
-import { consumeZcodeJwtInvalidRestartMarker } from "@/root/zcodeJwtInvalidRestartMarker.js";
 import { useDesktopNativeThemeSync } from "@/root/useDesktopNativeThemeSync.js";
 import { useRootPlatformEffects } from "@/root/useRootPlatformEffects.js";
 import { useRootWorkspaceActions } from "@/root/useRootWorkspaceActions.js";
@@ -177,10 +175,24 @@ function RootInner({
     refresh: refreshAppSettings,
     update: updateAppSettings,
   } = useSettings();
-  const [welcomeScreenOpenReason, setWelcomeScreenOpenReason] =
-    useState<WelcomeScreenOpenReason | null>(() =>
-      consumeZcodeJwtInvalidRestartMarker() ? "session-expired" : null,
-    );
+  // 二开版：登录墙已整体移除（自用不需要登录）。
+  // welcomeScreenOpenReason 恒为 null，所有触发路径（首启无供应商/会话过期/登出/手动登录/请求登录）
+  // 统一在下面的 no-op setter 处吞掉，WelcomeScreen 永不渲染。
+  // 模型供应商改由「设置 → 模型设置」配置 API Key 完成，不依赖账号登录。
+  const [welcomeScreenOpenReason] = useState<WelcomeScreenOpenReason | null>(null);
+  const setWelcomeScreenOpenReason = useCallback(
+    (
+      _reason:
+        | WelcomeScreenOpenReason
+        | null
+        | ((
+            current: WelcomeScreenOpenReason | null,
+          ) => WelcomeScreenOpenReason | null),
+    ): void => {
+      // no-op：保留签名以兼容既有触发点，登录入口已移除。
+    },
+    [],
+  );
   const [providerFamilyDomainMigrationComplete, setProviderFamilyDomainMigrationComplete] =
     useState(false);
   const loginEntryRequest = useZCodeStore((state) => state.loginEntryRequest);
@@ -469,7 +481,6 @@ function RootInner({
     handleSelectProject,
     handleSelectConversationWorkspace,
     handleResolveConversationWorkspace,
-    handleEnsureConversationWorkspace,
     handleCreateConversationTask,
     handleOpenWorkspace,
     handleOpenFolderFromWorkspaceMenu,
@@ -804,40 +815,6 @@ function RootInner({
     setWelcomeScreenOpenReason("provider-request");
   }, [loginEntryRequest]);
 
-  const handleOpenLoginEntry = () => {
-    setWelcomeScreenOpenReason("manual-login");
-  };
-  const handleWelcomeScreenComplete = useCallback(
-    async (reason: LoginCompleteReason) => {
-      await refreshAppSettings();
-      if (
-        welcomeScreenOpenReason !== "startup-provider-required" ||
-        workspaceShellPath ||
-        !allowOpenWorkspace
-      ) {
-        setWelcomeScreenOpenReason(null);
-        return;
-      }
-
-      try {
-        await handleEnsureConversationWorkspace();
-      } catch (error) {
-        logger.error("[Root] 登录后创建默认 workspace 失败", {
-          error,
-          reason,
-        });
-      } finally {
-        setWelcomeScreenOpenReason(null);
-      }
-    },
-    [
-      allowOpenWorkspace,
-      handleEnsureConversationWorkspace,
-      refreshAppSettings,
-      welcomeScreenOpenReason,
-      workspaceShellPath,
-    ],
-  );
   const handleRemoteConnectionDialogOpenChange = useCallback((open: boolean) => {
     setRemoteConnectionDialogOpen(open);
     if (!open) {
@@ -896,7 +873,9 @@ function RootInner({
     onCreateTask: handleCreateTask,
     onOpenWorkspace: handleOpenWorkspace,
     allowOpenWorkspace,
-    onLogin: !user ? handleOpenLoginEntry : undefined,
+    // 二开版：登录入口已移除（自用不需要登录）。设置页登录/OAuth 按钮以该 prop
+    // 是否存在为显示条件，传 undefined 即自动隐藏；API Key 配置能力不受影响。
+    onLogin: undefined,
     onLogout: user ? handleLogout : undefined,
     user,
   };
@@ -916,16 +895,8 @@ function RootInner({
     );
   }
 
-  if (welcomeScreenOpenReason) {
-    return (
-      <RootShell>
-        {rootModelSelectionErrorNode}
-        {remoteConnectionDialog}
-        {directoryBrowserDialog}
-        <WelcomeScreen onComplete={handleWelcomeScreenComplete} />
-      </RootShell>
-    );
-  }
+  // 二开版：WelcomeScreen（登录墙）已移除，welcomeScreenOpenReason 恒为 null，
+  // 该分支不再可能命中，直接删除渲染块。
 
   if (
     !workspaceShellPath &&
@@ -994,7 +965,7 @@ function RootInner({
             allowRemoteWorkspace={allowRemoteWorkspace}
             handleBackFromSettings={handleBackFromSettings}
             handleLogout={user ? handleLogout : undefined}
-            onLogin={!user ? handleOpenLoginEntry : undefined}
+            onLogin={undefined}
             user={user}
             reconnectingRemoteWorkspaceKeys={reconnectingRemoteWorkspaceKeys}
             remoteWorkspaceErrorByWorkspaceKey={remoteWorkspaceErrorByWorkspaceKey}

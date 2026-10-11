@@ -21,8 +21,8 @@ import { ArrowRightIcon, AstroidIcon, UsersIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import {
-  type CodingPlanStatus,
   type CodingPlanProviderId,
+  type CodingPlanStatus,
   type ModelProviderNavItem,
 } from "./constants.js";
 import { InlineEditableProviderCard } from "./InlineEditableProviderCard.js";
@@ -31,10 +31,7 @@ import {
   PresetProviderPlaceholderCard,
   CodingPlanStatusPanel,
 } from "./StatusCards.js";
-import {
-  resolveCodingPlanUpgradeProductsProviderId,
-  type CodingPlanLoginOptions,
-} from "./codingPlanPricingCards.js";
+import { resolveCodingPlanUpgradeProductsProviderId } from "./codingPlanPricingCards.js";
 import {
   type EnterpriseCodingPlanProductGroup,
   type PurchaseAudience,
@@ -252,7 +249,6 @@ export function ModelProviderSectionDetail({
   onDelete,
   onReorderProviderModels,
   onTestModel,
-  onCodingPlanLogin,
   onRetryCodingPlan,
   onCodingPlanDisconnect,
   onOpenApiKeyUrl,
@@ -292,13 +288,6 @@ export function ModelProviderSectionDetail({
   onReorderProviderModels?: (providerId: string, modelIds: string[]) => Promise<void>;
   onTestModel: (providerId: string, modelId: string) => Promise<ModelConnectivityResult>;
   onRetryCodingPlan?: () => void | Promise<void>;
-  onCodingPlanLogin: (
-    presetId: BuiltinModelProviderId,
-    providerId: OAuthProviderId,
-    providerName: string,
-    status: CodingPlanStatus,
-    options?: CodingPlanLoginOptions,
-  ) => number | void;
   onCodingPlanDisconnect: (
     presetId: BuiltinModelProviderId,
     providerId: OAuthProviderId,
@@ -549,17 +538,8 @@ export function ModelProviderSectionDetail({
       audience: PurchaseAudience,
       options: { initialTeamPlanKey?: string; eventText?: string } = {},
     ) => {
-      if (resolvePurchaseChoiceSelectionIntent(statusPanelViewState.displayStatus) === "login") {
-        // 未登录时个人/团队套餐必须先建立对应 provider 的 OAuth 身份。
-        // 直接打开购买面板会绕过账号态，导致后续价格/订单接口只能再报 oauth_required。
-        onCodingPlanLogin(
-          selectedNavItem.presetId,
-          selectedNavItem.oauthProviderId,
-          selectedNavItem.providerName,
-          selectedNavItem.status,
-        );
-        return;
-      }
+      // 二开版：登录/OAuth 入口已移除（自用不需要登录）。
+      // 原逻辑：未登录时先建立 OAuth 身份再打开购买面板；登录移除后直接打开购买面板。
       openCodingPlanUpgrade({
         providerId: selectedNavItem.presetId,
         initialAudience: audience,
@@ -665,17 +645,9 @@ export function ModelProviderSectionDetail({
               ? onRetryCodingPlan
               : undefined)
           }
-          onLogin={(options) => {
-            return onCodingPlanLogin(
-              selectedNavItem.presetId,
-              selectedNavItem.oauthProviderId,
-              selectedNavItem.providerName,
-              // 查看套餐接口要求业务 OAuth 仍有效；已购买状态下的“重新链接”不能只静默刷新 key，
-              // 否则 OAuth 过期时点击没有可见反馈。升级态的重连强制走重新登录路径。
-              upgradePlansVisible ? "unavailable" : selectedNavItem.status,
-              options,
-            );
-          }}
+          // 二开版：登录/OAuth 入口已移除（自用不需要登录）。状态卡的登录按钮以该 prop
+          // 是否存在为显示条件，传 undefined 即自动隐藏；账号相关状态文案仍可正常展示。
+          onLogin={undefined}
           onOpenUpgradePlans={(options) => {
             openCodingPlanUpgrade({
               providerId: selectedNavItem.presetId,
@@ -755,15 +727,8 @@ export function ModelProviderSectionDetail({
             mcpQuotaLimit={selectedNavItem.mcpQuotaLimit ?? null}
             authError={codingPlanAuthError}
             onOpenRegistration={onOpenBigModelRegistration}
-            onLogin={(options) => {
-              return onCodingPlanLogin(
-                selectedNavItem.presetId,
-                selectedNavItem.oauthProviderId,
-                selectedNavItem.providerName,
-                selectedNavItem.status,
-                options,
-              );
-            }}
+            // 二开版：登录/OAuth 入口已移除（自用不需要登录），同状态卡处理。
+            onLogin={undefined}
             reloginOnFailure={!upgradePlansVisible && reloginOnFailure}
             onRetry={
               retryTeamPlan ??
@@ -870,10 +835,6 @@ export function ModelProviderSectionDetail({
       statusSectionSuppressesHeader={false}
     />
   );
-}
-
-function resolvePurchaseChoiceSelectionIntent(status: CodingPlanStatus): "login" | "purchase" {
-  return status === "disconnected" ? "login" : "purchase";
 }
 
 function CodingPlanPurchaseChoiceBanners({
