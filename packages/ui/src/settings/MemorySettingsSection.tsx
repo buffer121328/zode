@@ -9,7 +9,13 @@ import {
 } from "@/settings/MemorySettingsViewer.js";
 import { SettingsGroupCard, SettingsRow } from "@/settings/SettingsPageParts.js";
 
-type MemoryCatalogService = Pick<IMemoryService, "listProjectMemories">;
+type MemoryCatalogService = Pick<
+  IMemoryService,
+  | "listProjectMemories"
+  | "readProjectMemoryFile"
+  | "writeProjectMemoryFile"
+  | "deleteProjectMemoryFile"
+>;
 
 function normalizeWorkspaceDisplayName(value: string): string {
   const slug = value
@@ -178,6 +184,7 @@ export function MemorySettingsSection({
         <MemorySettingsViewer
           catalogError={catalogError}
           catalogState={catalogState}
+          memoryService={memoryService}
           selectedWorkspace={selectedWorkspace}
           workspaces={displayWorkspaces}
           onRefresh={handleRefresh}

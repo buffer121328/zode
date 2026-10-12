@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
-import type { ProjectMemoryWorkspaceSummary } from "@zcode/services";
+import type { ProjectMemoryFileSummary, ProjectMemoryWorkspaceSummary } from "@zcode/services";
 import {
   TID_SETTINGS_MEMORY_COUNT,
   TID_SETTINGS_MEMORY_FILE,
@@ -24,12 +24,17 @@ import { SettingsSearchInput } from "@/settings/SettingsSearchInput.js";
 import { SettingsResourceHeaderActions } from "@/settings/SettingsResourceHeaderActions.js";
 import { formatMemoryUpdatedAt } from "@/settings/memoryUpdatedAt.js";
 import { WorkspaceEditorButtonGroup } from "@/WorkspaceEditorButtonGroup.js";
+import {
+  MemoryFileEditorDialog,
+  type MemoryFileEditorService,
+} from "@/settings/MemoryFileEditorDialog.js";
 
 export type MemoryViewerLoadingState = "idle" | "loading" | "ready" | "error";
 
 export function MemorySettingsViewer({
   catalogError,
   catalogState,
+  memoryService,
   selectedWorkspace,
   workspaces,
   onRefresh,
@@ -37,6 +42,8 @@ export function MemorySettingsViewer({
 }: {
   catalogError: string | null;
   catalogState: MemoryViewerLoadingState;
+  /** 二开新增：查看/编辑/删除记忆文件的服务（双击行打开弹窗）。 */
+  memoryService: MemoryFileEditorService;
   selectedWorkspace: ProjectMemoryWorkspaceSummary | undefined;
   workspaces: ProjectMemoryWorkspaceSummary[];
   onRefresh: () => Promise<void>;
@@ -44,6 +51,11 @@ export function MemorySettingsViewer({
 }) {
   const { intl, locale } = useZCodeIntl();
   const [searchQuery, setSearchQuery] = useState("");
+  // 打开时固定 workspaceId：弹窗打开期间用户切 scope 不影响保存/删除的目标目录。
+  const [editing, setEditing] = useState<{
+    workspaceId: string;
+    file: ProjectMemoryFileSummary;
+  } | null>(null);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const interval = window.setInterval(() => setNow(Date.now()), 60_000);
@@ -157,7 +169,9 @@ export function MemorySettingsViewer({
                 <div className="flex min-w-0 items-center hover:bg-hover">
                   <div
                     data-testid={testId(TID_SETTINGS_MEMORY_FILE, file.name)}
-                    className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-start"
+                    title={intl.formatMessage({ id: "settings.memory.viewer.openHint" })}
+                    className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 px-4 py-3 text-start"
+                    onDoubleClick={() => setEditing({ workspaceId: selectedWorkspace.id, file })}
                   >
                     <span
                       data-testid={testId(TID_SETTINGS_MEMORY_FILE_ICON, file.name)}
@@ -201,6 +215,20 @@ export function MemorySettingsViewer({
           </div>
         </>
       )}
+      {editing ? (
+        <MemoryFileEditorDialog
+          open
+          workspaceId={editing.workspaceId}
+          fileName={editing.file.name}
+          memoryService={memoryService}
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) {
+              setEditing(null);
+            }
+          }}
+          onMutated={onRefresh}
+        />
+      ) : null}
     </section>
   );
 }

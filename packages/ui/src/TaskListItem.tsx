@@ -776,6 +776,7 @@ export function TaskListItemContextMenuContent({
   onTogglePinTask,
   onStartRenameTask,
   onArchiveTask,
+  onDeleteTask,
   onMarkTaskAsUnread,
   disableTaskActions = false,
   disabledReason,
@@ -788,6 +789,8 @@ export function TaskListItemContextMenuContent({
   onTogglePinTask: (taskId: string, pinned: boolean) => void;
   onStartRenameTask: (taskId: string, currentTitle: string) => void;
   onArchiveTask: (taskId: string) => void;
+  /** 会话删除（二开新增，可选）。 */
+  onDeleteTask?: (taskId: string) => void;
   onMarkTaskAsUnread: (taskId: string) => void;
   disableTaskActions?: boolean;
   disabledReason?: string;
@@ -893,6 +896,7 @@ export function TaskListItemContextMenuContent({
       onArchiveTask={() => {
         onArchiveTask(task.taskId);
       }}
+      onDeleteTask={onDeleteTask ? () => onDeleteTask(task.taskId) : undefined}
       onMarkTaskAsUnread={() => {
         onMarkTaskAsUnread(task.taskId);
       }}

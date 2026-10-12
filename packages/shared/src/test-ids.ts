@@ -398,6 +398,14 @@ export const TID_SETTINGS_MEMORY_FILE_NAME = "settings-memory-file-name";
 export const TID_SETTINGS_MEMORY_FILE_UPDATED_AT = "settings-memory-file-updated-at";
 /** Memory 文件编辑器按钮组（动态后缀为文件名） */
 export const TID_SETTINGS_MEMORY_FILE_EDITOR_ACTIONS = "settings-memory-file-editor-actions";
+/** Memory 文件查看/编辑弹窗（二开新增） */
+export const TID_SETTINGS_MEMORY_FILE_DIALOG = "settings-memory-file-dialog";
+/** Memory 文件编辑弹窗正文（二开新增） */
+export const TID_SETTINGS_MEMORY_FILE_DIALOG_TEXTAREA = "settings-memory-file-dialog-textarea";
+/** Memory 文件编辑弹窗保存按钮（二开新增） */
+export const TID_SETTINGS_MEMORY_FILE_DIALOG_SAVE = "settings-memory-file-dialog-save";
+/** Memory 文件编辑弹窗删除按钮（二开新增） */
+export const TID_SETTINGS_MEMORY_FILE_DIALOG_DELETE = "settings-memory-file-dialog-delete";
 /** Memory 原始 Markdown 预览 */
 export const TID_SETTINGS_MEMORY_PREVIEW = "settings-memory-preview";
 /** 常规设置中的 AskUserQuestion 自动继续开关 */

@@ -88,6 +88,8 @@ import {
   scanWindowsReservedDeviceNameFiles,
 } from "@/lib/workspaceRemovalSafety.js";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
+import { bumpTaskListMembershipVersion } from "@/v4/taskListMembershipVersion.js";
+import { removeTaskFromTaskCaches } from "@/lib/taskListMetaSync.js";
 import { toast } from "@/components/ui/toast.js";
 
 export type SortableBindings = Pick<ReturnType<typeof useSortable>, "attributes" | "listeners">;
@@ -663,6 +665,66 @@ export const WorkspaceSidebarItem = memo(function WorkspaceSidebarItem({
     ],
   );
 
+  // 会话右键「删除任务」（二开新增）：确认后调用 deleteTask（写 deleted tombstone
+  // 使其不复活），再按归档同款清理本地状态与缓存。
+  const handleDeleteTask = useCallback(
+    async (taskId: string) => {
+      if (readOnlyReason) {
+        return;
+      }
+      const task = findCurrentTaskItem(taskId);
+      const confirmed = await confirmDialog({
+        title: intl.formatMessage({ id: "confirmDialog.taskDeleteTitle" }),
+        description: intl.formatMessage(
+          { id: "confirmDialog.taskDeleteDescription" },
+          { taskTitle: task?.title ?? taskId },
+        ),
+        confirmLabel: intl.formatMessage({ id: "taskList.delete" }),
+        cancelLabel: intl.formatMessage({ id: "common.cancel" }),
+        confirmVariant: "destructive",
+      });
+      if (!confirmed) {
+        return;
+      }
+      try {
+        await zcodeTaskService.deleteTask({
+          taskId,
+          workspacePath: tab.workspacePath,
+          ...(tab.workspaceIdentity ? { workspaceIdentity: tab.workspaceIdentity } : {}),
+        });
+        // 后台 refresh 可能携带删除前的 membership；先换代再清本地状态。
+        bumpTaskListMembershipVersion();
+        removeTaskState(tab.workspacePath, taskId, tab.workspaceIdentity);
+        if (tab.workspaceIdentity) {
+          useRemoteTimelineTaskStore
+            .getState()
+            .removeTask(tab.workspacePath, taskId, tab.workspaceIdentity);
+          useRemotePinnedTaskStore
+            .getState()
+            .removeTask(tab.workspacePath, taskId, tab.workspaceIdentity);
+        }
+        removeTaskFromTaskCaches({
+          workspacePath: tab.workspacePath,
+          workspaceIdentity: tab.workspaceIdentity,
+          taskId,
+        });
+      } catch (error) {
+        logger.error("[WorkspaceSidebarItem] 删除任务失败:", error);
+        toast(intl.formatMessage({ id: "taskList.deleteFailed" }));
+      }
+    },
+    [
+      confirmDialog,
+      findCurrentTaskItem,
+      intl,
+      readOnlyReason,
+      removeTaskState,
+      tab.workspaceIdentity,
+      tab.workspacePath,
+      zcodeTaskService,
+    ],
+  );
+
   const handleSetTaskUnread = useCallback(
     async (taskId: string, unread: boolean) => {
       if (readOnlyReason) {
@@ -1131,6 +1193,7 @@ export const WorkspaceSidebarItem = memo(function WorkspaceSidebarItem({
             onRenameTask={handleRenameTask}
             onSetTaskPinned={handleSetTaskPinned}
             onArchiveTask={handleArchiveTask}
+            onDeleteTask={handleDeleteTask}
             onSetTaskUnread={handleSetTaskUnread}
             readOnlyReason={readOnlyReason}
           />

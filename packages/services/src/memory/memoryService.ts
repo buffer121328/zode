@@ -2,15 +2,19 @@ import {
   type IMemoryService,
   type ProjectMemoryFileSummary,
   type ProjectMemoryWorkspaceSummary,
+  PROJECT_MEMORY_FILE_CHANGED_ERROR_CODE,
 } from "./memory.js";
-import { lstat, readdir, realpath } from "node:fs/promises";
+import { lstat, readdir, realpath, rm } from "node:fs/promises";
 import { basename, isAbsolute, join, relative, sep } from "node:path";
+import { atomicWriteText } from "#src/fs/atomicFileUtils.js";
 import { readProjectMemoryFileFromStableHandle } from "#src/memory/projectMemoryStableRead.js";
 import { getZCodeDataRootDir } from "#src/paths.js";
 
 const PROJECT_MEMORY_INDEX_FILE_NAME = "MEMORY.md";
 const PROJECT_MEMORY_DIRECTORY_NAME = "memory";
 const PROJECT_KEY_SUFFIX_PATTERN = /^(.*)-[a-f0-9]{16}$/i;
+// 与读取侧 projectMemoryStableRead 的 5 MiB 预览上限保持一致；编辑器保存不得写超。
+const PROJECT_MEMORY_WRITE_MAX_BYTES = 5 * 1024 * 1024;
 
 function isNotFoundError(error: unknown): boolean {
   return typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT";
@@ -97,6 +101,38 @@ async function assertContainedProjectMemoryPath(
   if (relativePath === ".." || relativePath.startsWith(`..${sep}`) || isAbsolute(relativePath)) {
     throw new Error(`Project Memory path is outside the local profile: ${targetPath}`);
   }
+}
+
+/**
+ * 校验并解析一个「已存在」的 Project Memory 文件路径（保存/删除共用）。
+ * 与读取路径同一套防线：路径段校验 → 真实目录（拒符号链接）→ 精确文件名 → 容器内 realpath 校验。
+ */
+async function resolveExistingProjectMemoryFile(params: {
+  workspaceId: string;
+  fileName: string;
+}): Promise<string> {
+  if (
+    !isValidPathSegment(params.workspaceId) ||
+    !isValidPathSegment(params.fileName) ||
+    !isProjectMemoryFileName(params.fileName)
+  ) {
+    throw new Error("Invalid Project Memory path");
+  }
+
+  const projectsRoot = await requireProjectMemoriesRoot();
+  const workspaceRoot = join(projectsRoot, params.workspaceId);
+  const memoryRoot = join(workspaceRoot, PROJECT_MEMORY_DIRECTORY_NAME);
+  await requirePlainDirectory(workspaceRoot);
+  await requirePlainDirectory(memoryRoot);
+  const filePath = await requireExactProjectMemoryFile(memoryRoot, params.fileName);
+  await assertContainedProjectMemoryPath(projectsRoot, filePath);
+  return filePath;
+}
+
+function throwMemoryFileChangedError(fileName: string): never {
+  throw Object.assign(new Error(`Project Memory file changed on disk: ${fileName}`), {
+    code: PROJECT_MEMORY_FILE_CHANGED_ERROR_CODE,
+  });
 }
 
 function compareProjectMemoryFiles(
@@ -231,8 +267,42 @@ export function createMemoryService(): IMemoryService {
     });
   }
 
+  async function writeProjectMemoryFile(params: {
+    workspaceId: string;
+    fileName: string;
+    content: string;
+    expectedUpdatedAt?: number;
+  }): Promise<{ updatedAt: number }> {
+    const filePath = await resolveExistingProjectMemoryFile(params);
+    if (Buffer.byteLength(params.content, "utf-8") > PROJECT_MEMORY_WRITE_MAX_BYTES) {
+      throw new Error(`Project Memory file exceeds the 5 MiB limit: ${params.fileName}`);
+    }
+    if (params.expectedUpdatedAt !== undefined && Number.isFinite(params.expectedUpdatedAt)) {
+      const current = await lstat(filePath, { bigint: true });
+      const currentUpdatedAt = Number(current.mtimeNs) / 1_000_000;
+      // 打开期间被外部（如记忆提取子代理）改写过时拒绝覆盖，交给 UI 提示刷新重读。
+      if (Math.abs(currentUpdatedAt - params.expectedUpdatedAt) > 1) {
+        throwMemoryFileChangedError(params.fileName);
+      }
+    }
+    await atomicWriteText(filePath, params.content);
+    const written = await lstat(filePath, { bigint: true });
+    return { updatedAt: Number(written.mtimeNs) / 1_000_000 };
+  }
+
+  async function deleteProjectMemoryFile(params: {
+    workspaceId: string;
+    fileName: string;
+  }): Promise<void> {
+    const filePath = await resolveExistingProjectMemoryFile(params);
+    // requireExact 已确认存在；force:false 让「校验后被外部删除」这类竞态显式报错。
+    await rm(filePath, { force: false });
+  }
+
   return {
     listProjectMemories,
     readProjectMemoryFile,
+    writeProjectMemoryFile,
+    deleteProjectMemoryFile,
   };
 }

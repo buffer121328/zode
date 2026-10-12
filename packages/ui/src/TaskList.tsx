@@ -45,6 +45,7 @@ export const TaskList = memo(function TaskList({
   onRenameTask,
   onSetTaskPinned,
   onArchiveTask,
+  onDeleteTask,
   onSetTaskUnread,
   readOnlyReason,
 }: {
@@ -66,6 +67,8 @@ export const TaskList = memo(function TaskList({
   onRenameTask: (taskId: string, title: string) => Promise<ZCodeTaskMeta | null>;
   onSetTaskPinned: (taskId: string, pinned: boolean) => Promise<ZCodeTaskMeta | null>;
   onArchiveTask: (taskId: string) => Promise<ZCodeTaskMeta | null>;
+  /** 会话删除（二开新增，可选；未提供时右键菜单不显示「删除任务」）。 */
+  onDeleteTask?: (taskId: string) => Promise<void> | void;
   onSetTaskUnread: (taskId: string, unread: boolean) => Promise<ZCodeTaskMeta | null>;
   readOnlyReason?: string;
 }) {
@@ -87,12 +90,14 @@ export const TaskList = memo(function TaskList({
   const onSelectTaskRef = useRef(onSelectTask);
   const onSetTaskPinnedRef = useRef(onSetTaskPinned);
   const onArchiveTaskRef = useRef(onArchiveTask);
+  const onDeleteTaskRef = useRef(onDeleteTask);
   const onSetTaskUnreadRef = useRef(onSetTaskUnread);
   pendingArchiveTaskIdRef.current = pendingArchiveTaskId;
   renamingTaskIdRef.current = renamingTaskId;
   onSelectTaskRef.current = onSelectTask;
   onSetTaskPinnedRef.current = onSetTaskPinned;
   onArchiveTaskRef.current = onArchiveTask;
+  onDeleteTaskRef.current = onDeleteTask;
   onSetTaskUnreadRef.current = onSetTaskUnread;
   const handleCancelArchiveConfirm = useCallback(() => {
     setPendingArchiveTaskId(null);
@@ -188,6 +193,18 @@ export const TaskList = memo(function TaskList({
       setPendingArchiveTaskId(null);
       handleCancelRenameTask();
       await onArchiveTaskRef.current(taskId);
+    },
+    [handleCancelRenameTask, readOnlyReason],
+  );
+
+  const handleDeleteTask = useCallback(
+    async (taskId: string) => {
+      if (readOnlyReason) {
+        return;
+      }
+      setPendingArchiveTaskId(null);
+      handleCancelRenameTask();
+      await onDeleteTaskRef.current?.(taskId);
     },
     [handleCancelRenameTask, readOnlyReason],
   );
@@ -459,6 +476,7 @@ export const TaskList = memo(function TaskList({
                   onTogglePinTask={handleTogglePinTask}
                   onStartRenameTask={handleStartRenameTask}
                   onArchiveTask={handleArchiveTask}
+                  onDeleteTask={onDeleteTask ? handleDeleteTask : undefined}
                   onMarkTaskAsUnread={handleMarkTaskAsUnread}
                   disableTaskActions={Boolean(readOnlyReason)}
                   disabledReason={readOnlyReason}

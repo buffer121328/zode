@@ -30,6 +30,20 @@ export interface IMemoryService {
     workspaceId: string;
     fileName: string;
   }): Promise<{ content: string; updatedAt: number }>;
+
+  /**
+   * 覆盖保存一个已存在的 Project Memory Markdown 文件（二开新增，供设置页编辑器使用）。
+   * expectedUpdatedAt 传入打开时读到的 updatedAt，用于检测外部并发修改；不一致时拒绝写入。
+   */
+  writeProjectMemoryFile(params: {
+    workspaceId: string;
+    fileName: string;
+    content: string;
+    expectedUpdatedAt?: number;
+  }): Promise<{ updatedAt: number }>;
+
+  /** 永久删除一个 Project Memory Markdown 文件（二开新增，供设置页删除按钮使用）。 */
+  deleteProjectMemoryFile(params: { workspaceId: string; fileName: string }): Promise<void>;
 }
 
 export const IMemoryService = createServiceDescriptor<IMemoryService>(ServiceChannels.Memory);

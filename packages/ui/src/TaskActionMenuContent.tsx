@@ -29,6 +29,7 @@ export function TaskActionMenuContent({
   onTogglePinTask,
   onStartRenameTask,
   onArchiveTask,
+  onDeleteTask,
   onMarkTaskAsUnread,
   onOpenInSplitPane,
   openInSplitPaneDisabled = false,
@@ -62,6 +63,8 @@ export function TaskActionMenuContent({
   onTogglePinTask: () => void;
   onStartRenameTask: () => void;
   onArchiveTask: () => void;
+  /** 会话删除（二开新增，可选；未提供时不渲染该项）。 */
+  onDeleteTask?: () => void;
   onMarkTaskAsUnread: () => void;
   /** 「在分屏打开」（仅桌面 shell 传入；手机远控不显示该入口）。 */
   onOpenInSplitPane?: () => void;
@@ -112,6 +115,19 @@ export function TaskActionMenuContent({
       >
         {intl.formatMessage({ id: "taskList.archive" })}
       </Item>
+      {onDeleteTask ? (
+        <Item
+          disabled={taskTargetActionsDisabled}
+          title={disabledReason}
+          onSelect={() => {
+            if (!taskTargetActionsDisabled) {
+              onDeleteTask();
+            }
+          }}
+        >
+          {intl.formatMessage({ id: "taskList.delete" })}
+        </Item>
+      ) : null}
       <Item
         disabled={taskTargetActionsDisabled}
         title={disabledReason}

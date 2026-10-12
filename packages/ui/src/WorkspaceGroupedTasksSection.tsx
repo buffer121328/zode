@@ -30,6 +30,9 @@ import { buildTaskWorkspaceKey } from "@/lib/taskQueryCache.js";
 import { getPathLeaf } from "@/lib/path.js";
 import { resolveTaskFileTreeTargetFromTabs } from "@/lib/taskFileTreeTarget.js";
 import { toast } from "@/components/ui/toast.js";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
+import { logger } from "@/logger.js";
+import { removeTaskFromTaskCaches } from "@/lib/taskListMetaSync.js";
 import { useBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
 import { selectWorkspaceZCodeState, useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
 import { useRemoteWorkspaceSessionStore } from "@/store/remoteWorkspaceSessionStore.js";
@@ -556,6 +559,7 @@ export function WorkspaceGroupedTasksSection({
   onOpenAutomations?: () => void;
 }) {
   const { intl } = useZCodeIntl();
+  const confirmDialog = useConfirmDialog();
   const baseServices = useBaseWorkspaceServices();
   const sessionsById = useRemoteWorkspaceSessionStore((state) => state.sessionsById);
   const sessionIdByWorkspaceIdentity = useRemoteWorkspaceSessionStore(
@@ -1128,6 +1132,61 @@ export function WorkspaceGroupedTasksSection({
     [intl, removeTaskState, workspaceServiceLookup],
   );
 
+  // 会话右键"删除任务"：确认后调 deleteTask（写 deleted tombstone 使其不复活），
+  // 再按归档同款清理本地状态与缓存；复用遗留的 confirmDialog.taskDelete* 文案。
+  const handleDeleteTask = useCallback(
+    (task: ZCodeTaskMeta) => {
+      const workspaceServices = workspaceServiceLookup.get(
+        buildTaskWorkspaceKey(task.workspacePath, task.workspaceIdentity),
+      );
+      if (!workspaceServices) {
+        return;
+      }
+
+      void (async () => {
+        const confirmed = await confirmDialog({
+          title: intl.formatMessage({ id: "confirmDialog.taskDeleteTitle" }),
+          description: intl.formatMessage(
+            { id: "confirmDialog.taskDeleteDescription" },
+            { taskTitle: task.title },
+          ),
+          confirmLabel: intl.formatMessage({ id: "taskList.delete" }),
+        });
+        if (!confirmed) {
+          return;
+        }
+
+        try {
+          await workspaceServices.services.zcodeTaskService.deleteTask({
+            taskId: task.taskId,
+            workspacePath: task.workspacePath,
+            ...(task.workspaceIdentity ? { workspaceIdentity: task.workspaceIdentity } : {}),
+          });
+          // 后台 refresh 可能携带删除前的 membership；先换代再清本地状态。
+          bumpTaskListMembershipVersion();
+          removeTaskState(task.workspacePath, task.taskId, task.workspaceIdentity);
+          if (task.workspaceIdentity) {
+            useRemoteTimelineTaskStore
+              .getState()
+              .removeTask(task.workspacePath, task.taskId, task.workspaceIdentity);
+            useRemotePinnedTaskStore
+              .getState()
+              .removeTask(task.workspacePath, task.taskId, task.workspaceIdentity);
+          }
+          removeTaskFromTaskCaches({
+            workspacePath: task.workspacePath,
+            workspaceIdentity: task.workspaceIdentity,
+            taskId: task.taskId,
+          });
+        } catch (error) {
+          logger.error("[WorkspaceGroupedTasksSection] 删除任务失败:", error);
+          toast(intl.formatMessage({ id: "taskList.deleteFailed" }));
+        }
+      })();
+    },
+    [confirmDialog, intl, removeTaskState, workspaceServiceLookup],
+  );
+
   const handleRenameGroup = useCallback(
     (groupId: string, title: string) => {
       void renameGroup(groupId, title).catch(() => {
@@ -1552,6 +1611,7 @@ export function WorkspaceGroupedTasksSection({
             onMoveTaskToTop={handleMoveTaskToTop}
             onStartRenameTask={handleStartRenameTask}
             onArchiveTask={handleCloseTask}
+            onDeleteTask={handleDeleteTask}
             onMarkTaskAsUnread={handleMarkTaskAsUnread}
             newGroupSetup={newGroupSetupId === node.group.id}
             onNewGroupSetupStarted={handleNewGroupSetupStarted}
@@ -1579,6 +1639,7 @@ export function WorkspaceGroupedTasksSection({
           onMoveTaskToTop={handleMoveTaskToTop}
           onStartRenameTask={handleStartRenameTask}
           onArchiveTask={handleCloseTask}
+          onDeleteTask={handleDeleteTask}
           onMarkTaskAsUnread={handleMarkTaskAsUnread}
           dragId={taskKey(node.task)}
           dragging={activeDragTaskKey === taskKey(node.task)}
@@ -1600,6 +1661,7 @@ export function WorkspaceGroupedTasksSection({
       groups,
       handleCloseGroupedDraftTask,
       handleCloseTask,
+      handleDeleteTask,
       handleCreateGroupDraftTask,
       onOpenAutomations,
       handleMoveTaskToGroup,
@@ -1666,6 +1728,7 @@ export function WorkspaceGroupedTasksSection({
             onMoveTaskToTop={handleMoveTaskToTop}
             onStartRenameTask={handleStartRenameTask}
             onArchiveTask={handleCloseTask}
+            onDeleteTask={handleDeleteTask}
             onMarkTaskAsUnread={handleMarkTaskAsUnread}
             dragId={activeDragTaskKey ?? undefined}
             dragOverlay
