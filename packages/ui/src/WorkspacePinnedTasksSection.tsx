@@ -4,7 +4,10 @@ import type { MouseEvent as ReactMouseEvent } from "react";
 import type { ZCodeTaskMeta } from "@zcode/shared";
 import { toast } from "@/components/ui/toast.js";
 import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu.js";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
 import { useGlobalTaskList } from "@/hooks/useGlobalTaskList.js";
+import { removeTaskFromTaskCaches } from "@/lib/taskListMetaSync.js";
+import { logger } from "@/logger.js";
 import { useLocalWorkspaceScopes } from "@/hooks/useLocalWorkspaceScopes.js";
 import { useBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
@@ -16,6 +19,7 @@ import { TaskRenameDialog } from "@/TaskRenameDialog.js";
 import { useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
 import type { WorkspaceTabState } from "@/store/tabStore.js";
 import { applyTaskQueryCacheMutation } from "@/store/taskQueryCacheStore.js";
+import { bumpTaskListMembershipVersion } from "@/v4/taskListMembershipVersion.js";
 import { TaskListRemoteSyncHint } from "@/TaskListRemoteSyncHint.js";
 import { useRemotePinnedTaskStore } from "@/store/remotePinnedTaskStore.js";
 import { useRemoteTimelineTaskStore } from "@/store/remoteTimelineTaskStore.js";
@@ -95,6 +99,7 @@ export function WorkspacePinnedTasksSection({
   const renameInputRef = useRef<HTMLInputElement | null>(null);
   const pendingArchiveItemKeyRef = useRef<string | null>(pendingArchiveItemKey);
   const taskSortByRef = useRef(taskSortBy);
+  const confirmDialog = useConfirmDialog();
   const intlRef = useRef(intl);
   const onSelectTaskRef = useRef(onSelectTask);
   const removeTaskStateRef = useRef(removeTaskState);
@@ -665,6 +670,63 @@ export function WorkspacePinnedTasksSection({
               setPendingArchiveItemKey(null);
               setRenamingItemKey(contextMenuItemKey);
               setRenameDraft(currentTitle);
+            }}
+            onDeleteTask={() => {
+              // 二开新增：置顶区右键「删除任务」——确认后写 tombstone，并按归档同款清理本地状态。
+              void (async () => {
+                const confirmed = await confirmDialog({
+                  title: intl.formatMessage({ id: "confirmDialog.taskDeleteTitle" }),
+                  description: intl.formatMessage(
+                    { id: "confirmDialog.taskDeleteDescription" },
+                    { taskTitle: contextMenuItem.title || contextMenuItem.taskId },
+                  ),
+                  confirmLabel: intl.formatMessage({ id: "taskList.delete" }),
+                  cancelLabel: intl.formatMessage({ id: "common.cancel" }),
+                  confirmVariant: "destructive",
+                });
+                if (!confirmed) {
+                  return;
+                }
+                try {
+                  await contextMenuServices.zcodeTaskService.deleteTask({
+                    taskId: contextMenuItem.taskId,
+                    workspacePath: contextMenuItem.workspacePath,
+                    ...(contextMenuItem.workspaceIdentity
+                      ? { workspaceIdentity: contextMenuItem.workspaceIdentity }
+                      : {}),
+                  });
+                  bumpTaskListMembershipVersion();
+                  removeTaskState(
+                    contextMenuItem.workspacePath,
+                    contextMenuItem.taskId,
+                    contextMenuItem.workspaceIdentity,
+                  );
+                  if (contextMenuItem.workspaceIdentity) {
+                    useRemotePinnedTaskStore
+                      .getState()
+                      .removeTask(
+                        contextMenuItem.workspacePath,
+                        contextMenuItem.taskId,
+                        contextMenuItem.workspaceIdentity,
+                      );
+                    useRemoteTimelineTaskStore
+                      .getState()
+                      .removeTask(
+                        contextMenuItem.workspacePath,
+                        contextMenuItem.taskId,
+                        contextMenuItem.workspaceIdentity,
+                      );
+                  }
+                  removeTaskFromTaskCaches({
+                    workspacePath: contextMenuItem.workspacePath,
+                    workspaceIdentity: contextMenuItem.workspaceIdentity,
+                    taskId: contextMenuItem.taskId,
+                  });
+                } catch (error) {
+                  logger.error("[WorkspacePinnedTasksSection] 删除任务失败:", error);
+                  toast(intl.formatMessage({ id: "taskList.deleteFailed" }));
+                }
+              })();
             }}
             onArchiveTask={() => {
               void contextMenuServices.zcodeTaskService

@@ -14,6 +14,9 @@ import { cn } from "@/components/lib/utils.js";
 import { Button } from "@/components/ui/button.js";
 import { Cloud, Ellipsis, Folder, GitBranch, LoaderIcon } from "lucide-react";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
+import { removeTaskFromTaskCaches } from "@/lib/taskListMetaSync.js";
+import { logger } from "@/logger.js";
+import { bumpTaskListMembershipVersion } from "@/v4/taskListMembershipVersion.js";
 import { useGlobalTaskList } from "@/hooks/useGlobalTaskList.js";
 import { useBaseWorkspaceServices, useWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
 import { useTaskListItemContextActions } from "@/useTaskListItemContextActions.js";
@@ -377,6 +380,56 @@ export function WorkspaceHeaderTitleSection({
       });
   };
 
+  // 二开新增：Header「更多」菜单的删除任务——确认后写 tombstone，并按归档同款清理运行态与缓存。
+  const handleDeleteTask = async () => {
+    if (!resolvedTaskActionTaskId) {
+      return;
+    }
+    const confirmed = await confirmDialog({
+      title: intl.formatMessage({ id: "confirmDialog.taskDeleteTitle" }),
+      description: intl.formatMessage(
+        { id: "confirmDialog.taskDeleteDescription" },
+        {
+          taskTitle:
+            activeTaskMeta?.title?.trim() ||
+            activeTaskTitle?.trim() ||
+            intl.formatMessage({ id: "taskList.untitled" }),
+        },
+      ),
+      confirmLabel: intl.formatMessage({ id: "taskList.delete" }),
+      confirmVariant: "destructive",
+    });
+    if (!confirmed) {
+      return;
+    }
+    handleCancelRenameTask();
+    try {
+      await services.zcodeTaskService.deleteTask({
+        taskId: resolvedTaskActionTaskId,
+        workspacePath: workspaceAbsPath,
+        ...(workspaceIdentity ? { workspaceIdentity } : {}),
+      });
+      bumpTaskListMembershipVersion();
+      removeTaskState(workspaceAbsPath, resolvedTaskActionTaskId, workspaceIdentity);
+      if (workspaceIdentity) {
+        useRemotePinnedTaskStore
+          .getState()
+          .removeTask(workspaceAbsPath, resolvedTaskActionTaskId, workspaceIdentity);
+        useRemoteTimelineTaskStore
+          .getState()
+          .removeTask(workspaceAbsPath, resolvedTaskActionTaskId, workspaceIdentity);
+      }
+      removeTaskFromTaskCaches({
+        workspacePath: workspaceAbsPath,
+        workspaceIdentity,
+        taskId: resolvedTaskActionTaskId,
+      });
+    } catch (error) {
+      logger.error("[WorkspaceHeaderSections] 删除任务失败:", error);
+      toast(intl.formatMessage({ id: "taskList.deleteFailed" }));
+    }
+  };
+
   return (
     <div
       className={cn(
@@ -632,6 +685,9 @@ export function WorkspaceHeaderTitleSection({
                     });
                 }}
                 onStartRenameTask={handleStartRenameTask}
+                onDeleteTask={() => {
+                  void handleDeleteTask();
+                }}
                 onArchiveTask={() => {
                   void handleArchiveTask();
                 }}

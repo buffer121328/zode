@@ -4,7 +4,9 @@ import type { MouseEvent as ReactMouseEvent } from "react";
 import type { ZCodeTaskMeta } from "@zcode/shared";
 import { toast } from "@/components/ui/toast.js";
 import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu.js";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
 import { useGlobalTaskList } from "@/hooks/useGlobalTaskList.js";
+import { removeTaskFromTaskCaches } from "@/lib/taskListMetaSync.js";
 import { useLocalWorkspaceScopes } from "@/hooks/useLocalWorkspaceScopes.js";
 import { useBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
@@ -23,6 +25,7 @@ import { useRemoteTimelineTaskStore } from "@/store/remoteTimelineTaskStore.js";
 import { useRemoteWorkspaceSessionStore } from "@/store/remoteWorkspaceSessionStore.js";
 import type { WorkspaceTabState } from "@/store/tabStore.js";
 import { applyTaskQueryCacheMutation } from "@/store/taskQueryCacheStore.js";
+import { bumpTaskListMembershipVersion } from "@/v4/taskListMembershipVersion.js";
 
 function buildTimelineItemKey(workspacePath: string, taskId: string, workspaceIdentity?: string) {
   return `${buildTaskWorkspaceKey(workspacePath, workspaceIdentity)}:${taskId}`;
@@ -84,6 +87,7 @@ export function WorkspaceTimelineTasksSection({
     }),
     [sessionIdByWorkspaceIdentity, sessionIdByWorkspacePath, sessionsById],
   );
+  const confirmDialog = useConfirmDialog();
   const removeTaskState = useZCodeSessionStore((state) => state.removeTaskState);
   const upsertOptimisticTaskListItem = useZCodeSessionStore(
     (state) => state.upsertOptimisticTaskListItem,
@@ -357,6 +361,58 @@ export function WorkspaceTimelineTasksSection({
         });
     },
     [getCurrentItemContext],
+  );
+  // 二开新增：任务区右键「删除任务」——沿用归档同款清理，删除写 tombstone 不复活。
+  const deleteTimelineItem = useCallback(
+    (itemKey: string) => {
+      const current = getCurrentItemContext(itemKey);
+      if (!current) {
+        return;
+      }
+      const { item, workspaceServices } = current;
+      void (async () => {
+        const confirmed = await confirmDialog({
+          title: intl.formatMessage({ id: "confirmDialog.taskDeleteTitle" }),
+          description: intl.formatMessage(
+            { id: "confirmDialog.taskDeleteDescription" },
+            { taskTitle: item.title || item.taskId },
+          ),
+          confirmLabel: intl.formatMessage({ id: "taskList.delete" }),
+          cancelLabel: intl.formatMessage({ id: "common.cancel" }),
+          confirmVariant: "destructive",
+        });
+        if (!confirmed) {
+          return;
+        }
+        try {
+          await workspaceServices.services.zcodeTaskService.deleteTask({
+            taskId: item.taskId,
+            workspacePath: item.workspacePath,
+            ...(item.workspaceIdentity ? { workspaceIdentity: item.workspaceIdentity } : {}),
+          });
+          // 后台 refresh 可能携带删除前的 membership；先换代再清本地状态。
+          bumpTaskListMembershipVersion();
+          removeTaskStateRef.current(item.workspacePath, item.taskId, item.workspaceIdentity);
+          if (item.workspaceIdentity) {
+            useRemoteTimelineTaskStore
+              .getState()
+              .removeTask(item.workspacePath, item.taskId, item.workspaceIdentity);
+            useRemotePinnedTaskStore
+              .getState()
+              .removeTask(item.workspacePath, item.taskId, item.workspaceIdentity);
+          }
+          removeTaskFromTaskCaches({
+            workspacePath: item.workspacePath,
+            workspaceIdentity: item.workspaceIdentity,
+            taskId: item.taskId,
+          });
+        } catch (error) {
+          logger.error("[WorkspaceTimelineTasksSection] 删除任务失败:", error);
+          toast(intl.formatMessage({ id: "taskList.deleteFailed" }));
+        }
+      })();
+    },
+    [confirmDialog, getCurrentItemContext, intl],
   );
   const selectTimelineItem = useCallback((itemKey: string) => {
     const item = itemByKeyRef.current.get(itemKey);
@@ -817,6 +873,7 @@ export function WorkspaceTimelineTasksSection({
               setRenamingItemKey(contextMenuItemKey);
               setRenameDraft(currentTitle ?? "");
             }}
+            onDeleteTask={() => deleteTimelineItem(contextMenuItemKey)}
             onArchiveTask={() => {
               setPendingArchiveItemKey(null);
               handleCancelRenameTask();
