@@ -1,7 +1,7 @@
 # ZCode 相关功能说明与第三方组件声明
 
 <p align="center">
-  <a href="NOTICE.md">English</a> | 简体中文
+  <a href="NOTICE-PRODUCT.md">English</a> | 简体中文
 </p>
 
 本声明适用于本仓库公开的源码及其构建产物。各运行形态的功能、权限、存储位置和网络行为不同，不能将其中一种形态的默认设置理解为整个项目的统一设置。

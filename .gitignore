@@ -1,3 +1,20 @@
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.local
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*~
+
+# 产品树自带规则（原 zcodium/.gitignore，随产品树提至根目录）
 node_modules/
 dist/
 # zcode-server-cli 发行包 staging 输出，本地组装产物不入库。
@@ -75,3 +92,9 @@ packages/desktop/.e2e-network-capture/
 
 # node-repl-host 的 TS 声明产物（typecheck 时生成，不入库）。
 apps/zcode-cli/packages/node-repl-host/dist-types/
+
+# 仓库根补充
+*.log
+*.tmp
+Thumbs.db
+*~
