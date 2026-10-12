@@ -398,6 +398,16 @@ export const TID_SETTINGS_MEMORY_FILE_NAME = "settings-memory-file-name";
 export const TID_SETTINGS_MEMORY_FILE_UPDATED_AT = "settings-memory-file-updated-at";
 /** Memory 文件编辑器按钮组（动态后缀为文件名） */
 export const TID_SETTINGS_MEMORY_FILE_EDITOR_ACTIONS = "settings-memory-file-editor-actions";
+/** 标题栏「?」版本与更新按钮（二开新增） */
+export const TID_TOP_OVERLAY_UPDATES_INFO_BUTTON = "top-overlay-updates-info-button";
+/** 版本与更新弹窗（二开新增） */
+export const TID_TOP_OVERLAY_UPDATES_INFO_DIALOG = "top-overlay-updates-info-dialog";
+/** 版本与更新弹窗：ZCode 官方 tab（二开新增） */
+export const TID_TOP_OVERLAY_UPDATES_INFO_TAB_ZCODE = "top-overlay-updates-info-tab-zcode";
+/** 版本与更新弹窗：ZCodium tab（二开新增） */
+export const TID_TOP_OVERLAY_UPDATES_INFO_TAB_ZCODIUM = "top-overlay-updates-info-tab-zcodium";
+/** 版本与更新弹窗：重试按钮（二开新增） */
+export const TID_TOP_OVERLAY_UPDATES_INFO_RETRY = "top-overlay-updates-info-retry";
 /** 会话管理设置页根（二开新增） */
 export const TID_SETTINGS_SESSIONS = "settings-sessions";
 /** 会话管理刷新按钮（二开新增） */

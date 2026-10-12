@@ -16,11 +16,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.js";
+import { SimpleMarkdown } from "@/components/SimpleMarkdown.js";
 import { Textarea } from "@/components/ui/textarea.js";
 import { toast } from "@/components/ui/toast.js";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { logger } from "@/logger.js";
+import { stripMarkdownFrontmatter } from "@/settings/markdownFrontmatter.js";
 
 export type MemoryFileEditorService = Pick<
   IMemoryService,
@@ -59,6 +61,8 @@ export function MemoryFileEditorDialog({
   const [originalContent, setOriginalContent] = useState("");
   const [updatedAt, setUpdatedAt] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+  // 二开调整：默认展示渲染后的 markdown 预览，「编辑」切回可编辑原文。
+  const [mode, setMode] = useState<"preview" | "edit">("preview");
 
   useEffect(() => {
     if (!open) {
@@ -72,6 +76,7 @@ export function MemoryFileEditorDialog({
     setContent("");
     setOriginalContent("");
     setUpdatedAt(null);
+    setMode("preview");
     void (async () => {
       try {
         const result = await memoryService.readProjectMemoryFile({ workspaceId, fileName });
@@ -155,7 +160,7 @@ export function MemoryFileEditorDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         data-testid={TID_SETTINGS_MEMORY_FILE_DIALOG}
-        className="flex w-[min(720px,calc(100vw-2rem))] max-w-none flex-col gap-3"
+        className="flex h-[min(640px,calc(100vh-4rem))] w-[min(760px,calc(100vw-2rem))] max-w-none flex-col gap-3"
         onOpenAutoFocus={(event) => {
           // 默认聚焦到 Textarea 更顺手；加载未完成时让 Radix 保持默认行为。
           if (phase !== "ready") {
@@ -189,14 +194,42 @@ export function MemoryFileEditorDialog({
             ) : null}
           </div>
         ) : (
-          <Textarea
-            data-testid={TID_SETTINGS_MEMORY_FILE_DIALOG_TEXTAREA}
-            className="min-h-[46vh] resize-y font-mono text-ui-sm leading-relaxed"
-            value={content}
-            spellCheck={false}
-            disabled={busy}
-            onChange={(event) => setContent(event.target.value)}
-          />
+          <div className="flex min-h-0 flex-1 flex-col gap-2">
+            <div className="flex shrink-0 items-center gap-1">
+              <Button
+                type="button"
+                variant={mode === "preview" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setMode("preview")}
+              >
+                {intl.formatMessage({ id: "settings.memory.editor.preview" })}
+              </Button>
+              <Button
+                type="button"
+                variant={mode === "edit" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setMode("edit")}
+              >
+                {intl.formatMessage({ id: "settings.memory.editor.edit" })}
+              </Button>
+            </div>
+            {mode === "preview" ? (
+              <div className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-border/50 bg-background px-4 py-3">
+                {/* 记忆文件以 YAML frontmatter 开头；Streamdown 不识别它，闭合的 --- 会把
+                    整段 YAML 解析成 setext 大标题，所以预览前剥离（原文在「编辑」里可见）。 */}
+                <SimpleMarkdown content={stripMarkdownFrontmatter(content)} />
+              </div>
+            ) : (
+              <Textarea
+                data-testid={TID_SETTINGS_MEMORY_FILE_DIALOG_TEXTAREA}
+                className="min-h-0 flex-1 resize-none font-mono text-ui-sm leading-relaxed"
+                value={content}
+                spellCheck={false}
+                disabled={busy}
+                onChange={(event) => setContent(event.target.value)}
+              />
+            )}
+          </div>
         )}
 
         <DialogFooter className="flex-wrap items-center gap-2 sm:justify-between">
@@ -221,7 +254,7 @@ export function MemoryFileEditorDialog({
             <Button
               type="button"
               data-testid={TID_SETTINGS_MEMORY_FILE_DIALOG_SAVE}
-              disabled={busy || !dirty}
+              disabled={busy || !dirty || mode !== "edit"}
               onClick={() => void handleSave()}
             >
               {busy ? <Loader2 className="size-3.5 animate-spin" /> : null}

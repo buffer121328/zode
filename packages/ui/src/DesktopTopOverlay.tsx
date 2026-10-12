@@ -1,14 +1,18 @@
+import { useState } from "react";
+import { TID_TOP_OVERLAY_UPDATES_INFO_BUTTON } from "@zcode/shared";
 import type { IPlatformService, UpdateStatePayload } from "@zcode/shared";
 import { cn } from "@/components/lib/utils.js";
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
+  CircleHelpIcon,
   MessageCirclePlus,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { UpdateStatusButton } from "@/UpdateStatusButton.js";
+import { UpdatesInfoDialog } from "@/UpdatesInfoDialog.js";
 import { DesktopTopOverlayActionButton } from "@/DesktopTopOverlayActionButton.js";
 import {
   createWindowsCaptionControlsStyle,
@@ -85,6 +89,7 @@ export function DesktopTopOverlay({
   const taskBackTitle = intl.formatMessage({ id: "taskNav.back" });
   const taskForwardTitle = intl.formatMessage({ id: "taskNav.forward" });
   const isNewTaskButtonVisible = showNewTaskButton ?? !isSidebarVisible;
+  const [updatesInfoOpen, setUpdatesInfoOpen] = useState(false);
   // 平台原生标题栏按钮（macOS 红绿灯在物理左侧、Windows caption 按钮在物理右侧）
   // 属于窗口装饰，不会随界面语言镜像，因此避让用的内边距必须保持物理方向。
   // 用 paddingInlineStart/End 会在 RTL 下避让到错误的一侧（Windows 上工具组会压到 caption 按钮下面）。
@@ -221,9 +226,24 @@ export function DesktopTopOverlay({
             isMacDesktop={isMacDesktop}
             isWindowsDesktop={isWindowsDesktop}
           />
+
+          {/* 二开新增：标题栏最右侧的「?」入口——版本与更新（ZCode 官方 / ZCodium 双 tab）。 */}
+          <DesktopTopOverlayActionButton
+            title={intl.formatMessage({ id: "topOverlay.updatesInfo.button" })}
+            ariaLabel={intl.formatMessage({ id: "topOverlay.updatesInfo.button" })}
+            testId={TID_TOP_OVERLAY_UPDATES_INFO_BUTTON}
+            onClick={() => setUpdatesInfoOpen(true)}
+          >
+            <CircleHelpIcon className="size-4" />
+          </DesktopTopOverlayActionButton>
           {/* </div> */}
         </div>
       </div>
+      <UpdatesInfoDialog
+        open={updatesInfoOpen}
+        onOpenChange={setUpdatesInfoOpen}
+        platform={platform}
+      />
     </div>
   );
 }
