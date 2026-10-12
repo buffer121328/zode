@@ -1,4 +1,4 @@
-/** ZCodium 审计版：官方平台功能开关。
+/** Zode 审计版：官方平台功能开关。
  *
  * 每个官方功能一个开关，默认全部关闭；关闭时应用不发起任何官方平台请求（凭证读取与网络请求前短路）。
  * 用户可以在设置的“官方服务”里单独开启需要的功能。
@@ -124,7 +124,7 @@ export function isOfficialPlatformEnabled(): boolean {
 export function assertOfficialServiceAvailable(key: OfficialServiceKey): void {
   if (!isOfficialServiceEnabled(key)) {
     throw new Error(
-      `ZCodium 默认不连接官方平台，此功能未开启。可在设置的“官方服务”里打开；反馈请访问 ${ZCODIUM_ISSUES_URL}`,
+      `Zode 默认不连接官方平台，此功能未开启。可在设置的“官方服务”里打开；反馈请访问 ${ZCODIUM_ISSUES_URL}`,
     );
   }
 }
@@ -135,15 +135,15 @@ export function isConversationShareAvailable(): boolean {
 }
 
 export function assertConversationShareRemoved(): void {
-  throw new Error(`对话分享已在 ZCodium 下线。反馈请访问 ${ZCODIUM_ISSUES_URL}`);
+  throw new Error(`对话分享已在 Zode 下线。反馈请访问 ${ZCODIUM_ISSUES_URL}`);
 }
 
-export const ZCODIUM_ISSUES_URL = "https://github.com/ZCodium-project/ZCodium/issues";
+export const ZCODIUM_ISSUES_URL = "https://github.com/Zode-project/Zode/issues";
 
 export function assertOfficialPlatformAvailable(): void {
   if (!isOfficialPlatformEnabled()) {
     throw new Error(
-      `ZCodium 默认不连接官方平台，此功能未开启。可在设置的“官方服务”里打开；反馈请访问 ${ZCODIUM_ISSUES_URL}`,
+      `Zode 默认不连接官方平台，此功能未开启。可在设置的“官方服务”里打开；反馈请访问 ${ZCODIUM_ISSUES_URL}`,
     );
   }
 }
@@ -249,8 +249,10 @@ export function assertOfficialPlatformAccessible(input: string | URL): void {
   const key = resolveOfficialServiceForUrl(input);
   if (key) {
     throw new Error(
-      `ZCodium 默认不连接官方平台，${key} 功能未开启。可在设置的“官方服务”里打开；反馈请访问 ${ZCODIUM_ISSUES_URL}`,
+      `Zode 默认不连接官方平台，${key} 功能未开启。可在设置的“官方服务”里打开；反馈请访问 ${ZCODIUM_ISSUES_URL}`,
     );
   }
-  throw new Error(`该官方平台地址在 ZCodium 已下线或未登记，不能访问。反馈请访问 ${ZCODIUM_ISSUES_URL}`);
+  throw new Error(
+    `该官方平台地址在 Zode 已下线或未登记，不能访问。反馈请访问 ${ZCODIUM_ISSUES_URL}`,
+  );
 }

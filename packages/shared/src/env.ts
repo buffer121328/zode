@@ -34,6 +34,15 @@ export const ZCODE_PRODUCT_FLAVOR = normalizeZCodeProductFlavor(
   typeof __ZCODE_PRODUCT_FLAVOR__ !== "undefined" ? __ZCODE_PRODUCT_FLAVOR__ : undefined,
   ZCODE_ENV,
 );
+
+/**
+ * 二开（Zode）：本仓库是个人自用版，不接上游发布通道，自动更新整条链路统一关闭——
+ * electron-updater 的 feed 指向 ZCodium-project/ZCodium，一旦放行会把二开版覆盖成上游包。
+ * 该常量同时关掉：主进程更新器初始化、帮助菜单/托盘/命令面板的「检查更新」入口
+ * （见 desktopApplicationMenu、desktopTray、desktopCommandHandlers、ui/desktopUpdateMenu）。
+ */
+export const ZCODE_AUTO_UPDATE_ENABLED = false;
+
 export const ZCODE_APP_VERSION_ENV = "ZCODE_APP_VERSION" as const;
 export const ZCODE_BUILD_COMMIT_ID_ENV = "ZCODE_BUILD_COMMIT_ID" as const;
 

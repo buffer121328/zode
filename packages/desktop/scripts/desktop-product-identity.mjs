@@ -1,25 +1,27 @@
 /**
  * 构建期开关：为真时安装包使用 Preview 身份，而后端环境仍由 `ZCODE_ENV` 单独决定。
  * 典型用法是 `ZCODE_ENV=production ZCODE_PREVIEW_IDENTITY=1`，得到一个连接生产后端、
- * 可与正式版并排安装的 `ZCode Preview`。
+ * 可与正式版并排安装的 `Zode Preview`。
+ * （二开 Zode：日常装机直接用 production 身份 `Zode`——本仓库无发布渠道，自动更新与
+ * 更新入口已由 `ZCODE_AUTO_UPDATE_ENABLED` 全局关闭，不再需要靠 Preview 身份规避。）
  */
 export const ZCODE_PREVIEW_IDENTITY_ENV = "ZCODE_PREVIEW_IDENTITY";
 
 const PRODUCTION_IDENTITY = Object.freeze({
   flavor: "production",
-  appId: "dev.zcodium.app",
-  productName: "ZCodium",
-  linuxExecutableName: "zcodium",
-  linuxPackageName: "zcodium",
+  appId: "dev.zode.app",
+  productName: "Zode",
+  linuxExecutableName: "zode",
+  linuxPackageName: "zode",
   cuaHelperInstallVariant: null,
 });
 
 const PREVIEW_IDENTITY = Object.freeze({
   flavor: "preview",
-  appId: "dev.zcodium.app.preview",
-  productName: "ZCodium Preview",
-  linuxExecutableName: "zcodium-preview",
-  linuxPackageName: "zcodium-preview",
+  appId: "dev.zode.app.preview",
+  productName: "Zode Preview",
+  linuxExecutableName: "zode-preview",
+  linuxPackageName: "zode-preview",
   cuaHelperInstallVariant: "preview",
 });
 

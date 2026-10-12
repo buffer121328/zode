@@ -12,6 +12,7 @@ import {
   type Locale,
   resolveRuntimeZCodeEndpointOrigin,
   ZCODE_ENV,
+  ZCODE_AUTO_UPDATE_ENABLED,
   ZCODE_PRODUCT_FLAVOR,
   buildZCodeEndpointUrls,
   getCommunityUrlFromConfigs,
@@ -308,7 +309,7 @@ function buildZCodeEndpointPromptHtml(currentValue: string): string {
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>ZCodium Endpoint</title>
+    <title>Zode Endpoint</title>
     <style>
       :root { color-scheme: light dark; }
       body { margin: 0; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
@@ -321,7 +322,7 @@ function buildZCodeEndpointPromptHtml(currentValue: string): string {
   </head>
   <body>
     <form id="form">
-      <label for="endpoint">ZCodium endpoint origin</label>
+      <label for="endpoint">Zode endpoint origin</label>
       <input id="endpoint" value="${value}" placeholder="https://endpoint.example.com" spellcheck="false" />
       <div class="hint">Use an http or https origin, for example https://endpoint.example.com.</div>
       <div class="actions">
@@ -360,7 +361,7 @@ function showZCodeEndpointPromptWindow(options: {
       resizable: false,
       minimizable: false,
       maximizable: false,
-      title: "ZCodium Endpoint",
+      title: "Zode Endpoint",
       webPreferences: {
         contextIsolation: true,
         nodeIntegration: false,
@@ -590,10 +591,13 @@ export async function executeDesktopCommand(options: {
       return;
     case DesktopCommandIds.CheckForUpdates:
       // 按产品身份而不是后端环境放行：生产后端的 Preview 同样没有更新器。
-      if (ZCODE_PRODUCT_FLAVOR === "production") {
+      // 二开（Zode）：本仓库无发布渠道，ZCODE_AUTO_UPDATE_ENABLED=false 时整体关闭。
+      if (ZCODE_AUTO_UPDATE_ENABLED && ZCODE_PRODUCT_FLAVOR === "production") {
         checkForUpdateMenuClick(targetWindow);
       } else {
-        options.logger.info("[auto-update] Preview 已禁用手动更新检查");
+        options.logger.info(
+          "[auto-update] 已禁用手动更新检查（ZCODE_AUTO_UPDATE_ENABLED=false 或 Preview 身份）",
+        );
       }
       return;
     case DesktopCommandIds.RelaunchApp:
@@ -657,7 +661,7 @@ export async function executeDesktopCommand(options: {
       } catch (error) {
         await showMessageBoxWithOptionalParent(targetWindow, {
           type: "error",
-          title: "ZCodium Endpoint",
+          title: "Zode Endpoint",
           message: "Endpoint 无效",
           detail: error instanceof Error ? error.message : String(error),
         });

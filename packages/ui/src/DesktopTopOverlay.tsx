@@ -152,7 +152,7 @@ export function DesktopTopOverlay({
             >
               <img
                 src={appLogoUrl}
-                alt="ZCodium"
+                alt="Zode"
                 className="size-5 transition-opacity duration-150 group-hover:opacity-0"
                 draggable={false}
               />
@@ -227,7 +227,7 @@ export function DesktopTopOverlay({
             isWindowsDesktop={isWindowsDesktop}
           />
 
-          {/* 二开新增：标题栏最右侧的「?」入口——版本与更新（ZCode 官方 / ZCodium 双 tab）。 */}
+          {/* 二开新增：标题栏最右侧的「?」入口——版本与更新（ZCode 官方 / Zode 双 tab）。 */}
           <DesktopTopOverlayActionButton
             title={intl.formatMessage({ id: "topOverlay.updatesInfo.button" })}
             ariaLabel={intl.formatMessage({ id: "topOverlay.updatesInfo.button" })}
