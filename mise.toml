@@ -16,8 +16,7 @@ depends = ["install"]
 run = "mise exec -- node scripts/mise-run.mjs pnpm bootstrap"
 
 [tasks.dev]
-description = "Start the desktop app in an isolated local test environment."
-env = { ZCODE_DATA_BASE_DIR = "{{env.HOME}}/.zcode-dev-home" }
+description = "Start the desktop app in the local test environment (uses real ~/.zcode data)."
 run = "mise exec -- node scripts/mise-run.mjs pnpm dev:desktop:test"
 
 [tasks.dev-desktop-prod]

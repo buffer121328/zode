@@ -17,7 +17,10 @@ import type {
 import { resolveDefaultSkillRoots, type SkillRootResolutionOptions } from "./roots.js";
 import { scanSkillFilesUnderRoot } from "./scan.js";
 
-const MAX_DESCRIPTION_LENGTH = 1024;
+// 二开版放宽（2026-10-12）：原值 1024，自用的 latex-document 技能描述约 3.8K 字符被拒。
+// 回滚：改回 1024，并同步 services/src/skills/skillsService.ts 的同名常量与
+// ui/src/i18n/locales/{zh-CN,en-US,fa}.ts 的 skill_description_too_long 文案。
+const MAX_DESCRIPTION_LENGTH = 8192;
 const SAFE_FRONTMATTER_KEYS = new Set([
   "name",
   "description",

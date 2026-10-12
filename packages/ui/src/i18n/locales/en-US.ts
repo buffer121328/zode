@@ -3515,7 +3515,7 @@ const enUS: Record<string, string> = {
     "`name` must be lowercase / digits / hyphens",
   "settings.skills.diagnostics.code.skill_missing_description":
     "Frontmatter missing `description` field",
-  "settings.skills.diagnostics.code.skill_description_too_long": "`description` exceeds 1024 chars",
+  "settings.skills.diagnostics.code.skill_description_too_long": "`description` exceeds 8192 chars",
   "settings.skills.diagnostics.code.skill_unknown_frontmatter": "Unrecognized frontmatter key",
   "settings.skills.diagnostics.code.skill_duplicate_name": "Duplicate skill name ignored",
   "settings.skills.diagnostics.code.skill_too_large": "SKILL.md too large; content truncated",

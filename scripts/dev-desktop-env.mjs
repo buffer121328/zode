@@ -15,15 +15,11 @@ if (requestedEnv !== "test" && requestedEnv !== "production") {
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const pnpmCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 
-// 开发实例必须与用户日常使用的 ZCode 数据完全隔离：显式指定 ZCODE_DATA_BASE_DIR，
-// 数据落在 {repoRoot}/.zcode-dev-data（而非 ~/.zcode）。仅在调用方（如 mise.toml 的
-// tasks.dev）未提供该变量时兜底注入，避免覆盖调用方自定义的隔离目录。
-// ZCODE_DATA_BASE_DIR 隔离 host 侧数据根（任务/凭据/v2 数据库）；
-// ZCODE_DESKTOP_HOME_DIR 隔离 setting.json 引导路径与 Electron home
-// （settingService 按 {该目录}/.zcode/v2/setting.json 解析）。两者必须指向同一目录，
-// 否则会出现"setting.json 读真实 HOME、业务数据写隔离目录"的分裂状态。
-const devDataBaseDir = process.env.ZCODE_DATA_BASE_DIR?.trim() || resolve(repoRoot, ".zcode-dev-data");
-const devHomeDir = process.env.ZCODE_DESKTOP_HOME_DIR?.trim() || devDataBaseDir;
+// 数据目录策略（2026-10-12 决定，原隔离方案已撤销）：dev 实例与官方 ZCode 共用真实
+// ~/.zcode——设置、凭据、会话、记忆全部统一，卸载官方 ZCode 后二开版直接继承，无需迁移。
+// 如需临时隔离做实验，调用方显式设置 ZCODE_DATA_BASE_DIR / ZCODE_DESKTOP_HOME_DIR
+// （两者必须指向同一目录，否则会出现 "setting.json 读真实 HOME、业务数据写隔离目录"
+// 的分裂状态）；本脚本透传而不覆盖调用方提供的值。
 
 function run(command, args) {
   return new Promise((resolveRun, rejectRun) => {
@@ -37,8 +33,6 @@ function run(command, args) {
           ...process.env,
           ZCODE_ENV: requestedEnv,
           ZCODE_DESKTOP_AGENT_BYTECODE: agentBytecode ? "1" : "0",
-          ZCODE_DATA_BASE_DIR: devDataBaseDir,
-          ZCODE_DESKTOP_HOME_DIR: devHomeDir,
         },
         process.execPath,
       ),

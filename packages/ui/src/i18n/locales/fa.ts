@@ -3457,7 +3457,7 @@ const faIR: Record<string, string> = {
   "settings.skills.diagnostics.code.skill_missing_description":
     "فیلد `description` در frontmatter وجود ندارد",
   "settings.skills.diagnostics.code.skill_description_too_long":
-    "`description` از 1024 نویسه بیشتر است",
+    "`description` از 8192 نویسه بیشتر است",
   "settings.skills.diagnostics.code.skill_unknown_frontmatter": "کلید frontmatter ناشناخته",
   "settings.skills.diagnostics.code.skill_duplicate_name": "نام تکراری مهارت نادیده گرفته شد",
   "settings.skills.diagnostics.code.skill_too_large":

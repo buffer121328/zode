@@ -387,7 +387,9 @@ export function ModelProviderSectionNavigation({
     <aside className="px-1.5 py-3 md:py-2 md:px-2">
       <div className="flex min-h-0 flex-col gap-3 max-md:gap-1">
         {navigationGroups
-          .filter((group) => group.id !== "custom" || group.items.length > 0)
+          // 二开版（2026-10-12，可回滚）：智谱套餐入口已移除，preset 分组为空时不再渲染
+          // 只剩标题的死分组。回滚：恢复为 group.id !== "custom" || group.items.length > 0。
+          .filter((group) => group.items.length > 0 || group.id === "custom")
           .map((group) => (
             <div key={group.id} className="flex flex-col gap-2 max-md:gap-1">
               <div className="flex h-7 items-center justify-between px-2 py-1 max-md:hidden">

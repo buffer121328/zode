@@ -3293,7 +3293,7 @@ const zhCN: Record<string, string> = {
   "settings.skills.diagnostics.code.skill_invalid_name":
     "name 字段不符合命名规范 (小写字母/数字/连字符)",
   "settings.skills.diagnostics.code.skill_missing_description": "frontmatter 缺少 description 字段",
-  "settings.skills.diagnostics.code.skill_description_too_long": "description 超过 1024 字符",
+  "settings.skills.diagnostics.code.skill_description_too_long": "description 超过 8192 字符",
   "settings.skills.diagnostics.code.skill_unknown_frontmatter": "存在未识别的 frontmatter 字段",
   "settings.skills.diagnostics.code.skill_duplicate_name": "同名技能已被忽略",
   "settings.skills.diagnostics.code.skill_too_large": "SKILL.md 体积过大已截断",

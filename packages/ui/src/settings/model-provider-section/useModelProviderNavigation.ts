@@ -3,6 +3,7 @@ import { useEffect, useMemo } from "react";
 import type { ProviderSettingsFormProvider } from "@/lib/providerSettingsFormTypes.js";
 import { getProviderFormLabel } from "@/lib/providerSettingsFormTypes.js";
 import type {
+  ModelProviderFamilyId,
   ProviderFamilyConnectionSelection,
   ProviderFamilyConnectionSelectionSettings,
   ProviderFamilyDomain,
@@ -36,6 +37,20 @@ import {
   buildVisibleFamilyConnectionItems,
   resolveCodingPlanEntitlementState,
 } from "@/settings/model-provider-section/providerFamilyConnectionVisibility.js";
+
+/**
+ * 二开版删除（2026-10-12，可回滚）：智谱（bigmodel 家族）的 BigModel / Start Plan
+ * 两个套餐入口（含其明细/连接方式）从模型设置里整体隐藏——自用版登录已移除，
+ * 套餐永远停留在"未连接"；隐藏整个家族后选中态会自动回落到自定义供应商。
+ * 回滚：清空本集合，并还原 Navigation.tsx 中 preset 空分组的过滤条件。
+ * （Z.ai 家族的同名入口未动；以后若也要隐藏，把 "zai" 加进来即可。）
+ */
+const HIDDEN_PLAN_FAMILY_IDS = new Set<ModelProviderFamilyId>(["bigmodel"]);
+
+function isHiddenPlanFamilyProvider(providerId: string): boolean {
+  const familyId = resolveModelProviderFamilySpecByProviderId(providerId)?.id;
+  return familyId !== undefined && HIDDEN_PLAN_FAMILY_IDS.has(familyId);
+}
 
 interface PresetProviderWithConfig extends PresetProviderSpec {
   provider: ProviderSettingsFormProvider | null;
@@ -91,8 +106,10 @@ export function useModelProviderNavigation({
 
   const codingPlanItems = useMemo(
     () =>
-      CODING_PLAN_PROVIDER_SPECS.filter((spec) =>
-        shouldShowCodingPlanForProviderFamilyDomain(spec.oauthProviderId, providerFamilyDomain),
+      CODING_PLAN_PROVIDER_SPECS.filter(
+        (spec) =>
+          shouldShowCodingPlanForProviderFamilyDomain(spec.oauthProviderId, providerFamilyDomain) &&
+          !isHiddenPlanFamilyProvider(spec.id),
       ).map((spec) => {
         const provider = modelProviders.find((item) => item.providerId === spec.id) ?? null;
         const accountEntitled = entitledAccountProviderIds.has(spec.id);
@@ -183,30 +200,32 @@ export function useModelProviderNavigation({
         id: "preset",
         title: intl.formatMessage({ id: "settings.modelProvider.presetTitle" }),
         items: [
-          ...presetProviders.map(({ id, displayName, provider }) => {
-            const statusProvider = resolvePresetFamilyStatusProvider({
-              presetId: id,
-              provider,
-              connectionModeItems: connectionModeCodingPlanItems,
-              connectionSelections,
-              modelProviders,
-            });
-            return {
-              key: createPresetProviderNodeKey(id),
-              type: "preset" as const,
-              presetId: id,
-              label: displayName,
-              logo: modelProviders.find(
-                (candidate) =>
-                  candidate.providerId ===
-                  resolveModelProviderFamilySpecByProviderId(id)?.individualCodingPlanProviderId,
-              )?.config.logo,
-              provider,
-              displayName,
-              statusProvider,
-              statusActive: statusProvider?.executable === true,
-            };
-          }),
+          ...presetProviders
+            .filter(({ id }) => !isHiddenPlanFamilyProvider(id))
+            .map(({ id, displayName, provider }) => {
+              const statusProvider = resolvePresetFamilyStatusProvider({
+                presetId: id,
+                provider,
+                connectionModeItems: connectionModeCodingPlanItems,
+                connectionSelections,
+                modelProviders,
+              });
+              return {
+                key: createPresetProviderNodeKey(id),
+                type: "preset" as const,
+                presetId: id,
+                label: displayName,
+                logo: modelProviders.find(
+                  (candidate) =>
+                    candidate.providerId ===
+                    resolveModelProviderFamilySpecByProviderId(id)?.individualCodingPlanProviderId,
+                )?.config.logo,
+                provider,
+                displayName,
+                statusProvider,
+                statusActive: statusProvider?.executable === true,
+              };
+            }),
           ...codingPlanItems.filter((item) => isStartPlanModelProviderId(item.presetId)),
         ],
       },

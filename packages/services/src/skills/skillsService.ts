@@ -58,8 +58,12 @@ const ZCODE_PLUGIN_MANIFEST_PATH = join(".zcode-plugin", "plugin.json");
 const CLAUDE_PLUGIN_MANIFEST_PATH = join(".claude-plugin", "plugin.json");
 const CODEX_PLUGIN_MANIFEST_PATH = join(".codex-plugin", "plugin.json");
 
-/** 对齐 apps/zcode-cli/packages/adapters/src/skills/index.ts:19 */
-const MAX_DESCRIPTION_LENGTH = 1024;
+/**
+ * 对齐 apps/zcode-cli/packages/adapters/src/skills/index.ts:23（两处必须同步改）。
+ * 二开版放宽（2026-10-12）：原值 1024；回滚：两处一起改回 1024，并还原 i18n
+ * skill_description_too_long 文案里的数字。
+ */
+const MAX_DESCRIPTION_LENGTH = 8192;
 function resolveUserHomeDir() {
   const envHome = process.env.HOME?.trim() || process.env.USERPROFILE?.trim();
   return envHome && envHome.length > 0 ? envHome : homedir();
