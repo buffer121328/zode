@@ -381,6 +381,12 @@ export interface IZCodeTaskService {
     workspaceIdentity?: string;
   }): Promise<ZCodeTaskMeta[]>;
 
+  /**
+   * 列出本机所有 workspace 的未删除 task（二开新增，供设置页「会话管理」跨项目视图使用）。
+   * 真相源同样是 tasks-index.sqlite；客户端按 workspacePath/Identity 分组。
+   */
+  listAllTasks(): Promise<ZCodeTaskMeta[]>;
+
   /** 读取全局 pinned task id 列表，真相源为 tasks-index.sqlite */
   listPinnedTaskIds(): Promise<string[]>;
 

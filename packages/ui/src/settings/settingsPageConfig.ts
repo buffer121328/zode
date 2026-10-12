@@ -19,6 +19,7 @@ import {
   Keyboard,
   FileSearch,
   ShieldCheck,
+  MessagesSquare,
 } from "lucide-react";
 import { isSettingsSectionEnabled, type SettingsSectionId } from "@/lib/settingsNavigation.js";
 import type { Theme } from "@/useTheme.js";
@@ -161,6 +162,13 @@ const BASE_SETTINGS_SECTIONS: SettingsSectionDefinition[] = [
     id: "officialServices",
     icon: ShieldCheck,
     titleId: "settings.officialServicesTitle",
+    groupId: "dataAndStats",
+  },
+  {
+    // 二开新增：会话管理（跨项目列出/删除会话）。
+    id: "sessions",
+    icon: MessagesSquare,
+    titleId: "settings.sessionsTitle",
     groupId: "dataAndStats",
   },
 ];

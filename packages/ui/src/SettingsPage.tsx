@@ -60,6 +60,7 @@ import { ModelProviderSection } from "@/settings/ModelProviderSection.js";
 import { useCodingPlanUpgradeDialog } from "@/settings/CodingPlanUpgradeDialogProvider.js";
 import { useEnterpriseCodingPlanProducts } from "@/settings/model-provider-section/useEnterpriseCodingPlanProducts.js";
 import { UsageStatsSection, type UsageStatsSectionTab } from "@/settings/UsageStatsSection.js";
+import { SessionManagerSection } from "@/settings/SessionManagerSection.js";
 import {
   buildCodingPlanUsageSources,
   type CodingPlanUsageSource,
@@ -1598,6 +1599,8 @@ export function SettingsPage({
                             remoteTarget={activeWorkspaceTab?.remoteTarget}
                             localWorkspacePath={activeWorkspaceTab?.localWorkspacePath}
                           />
+                        ) : activeSection === "sessions" ? (
+                          <SessionManagerSection taskService={localHostServices.zcodeTaskService} />
                         ) : null}
                       </div>
                     </div>

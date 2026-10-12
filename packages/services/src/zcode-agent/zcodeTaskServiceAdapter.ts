@@ -2341,6 +2341,15 @@ export function createZCodeTaskServiceAdapter(
       return tasks.map(rememberIndexedTaskMeta);
     },
 
+    async listAllTasks(): Promise<ZCodeTaskMeta[]> {
+      // 二开新增：不传 workspacePath 即全量查询（repo 层支持 @workspace_key IS NULL），
+      // 不过滤 pinned/archived、只排除 deleted，供设置页「会话管理」按项目分组展示与删除。
+      const tasks = await taskIndexRepo.listTaskMetas({
+        provider: GLM_PROVIDER,
+      });
+      return tasks.map(rememberIndexedTaskMeta);
+    },
+
     async listPinnedTaskIds(): Promise<string[]> {
       const tasks = await taskIndexRepo.listTaskMetas({
         provider: GLM_PROVIDER,

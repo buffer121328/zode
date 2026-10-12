@@ -398,6 +398,22 @@ export const TID_SETTINGS_MEMORY_FILE_NAME = "settings-memory-file-name";
 export const TID_SETTINGS_MEMORY_FILE_UPDATED_AT = "settings-memory-file-updated-at";
 /** Memory 文件编辑器按钮组（动态后缀为文件名） */
 export const TID_SETTINGS_MEMORY_FILE_EDITOR_ACTIONS = "settings-memory-file-editor-actions";
+/** 会话管理设置页根（二开新增） */
+export const TID_SETTINGS_SESSIONS = "settings-sessions";
+/** 会话管理刷新按钮（二开新增） */
+export const TID_SETTINGS_SESSIONS_REFRESH = "settings-sessions-refresh";
+/** 会话管理项目分组（动态后缀为 workspace key，二开新增） */
+export const TID_SETTINGS_SESSIONS_GROUP = "settings-sessions-group";
+/** 会话管理整组删除按钮（动态后缀为 workspace key，二开新增） */
+export const TID_SETTINGS_SESSIONS_DELETE_GROUP = "settings-sessions-delete-group";
+/** 会话管理展开/折叠全部按钮（二开新增） */
+export const TID_SETTINGS_SESSIONS_EXPAND_ALL = "settings-sessions-expand-all";
+/** 会话管理组内显示更多按钮（动态后缀为 workspace key，二开新增） */
+export const TID_SETTINGS_SESSIONS_SHOW_MORE = "settings-sessions-show-more";
+/** 会话管理会话行（动态后缀为 taskId，二开新增） */
+export const TID_SETTINGS_SESSIONS_ROW = "settings-sessions-row";
+/** 会话管理单条删除按钮（动态后缀为 taskId，二开新增） */
+export const TID_SETTINGS_SESSIONS_DELETE = "settings-sessions-delete";
 /** Memory 文件查看/编辑弹窗（二开新增） */
 export const TID_SETTINGS_MEMORY_FILE_DIALOG = "settings-memory-file-dialog";
 /** Memory 文件编辑弹窗正文（二开新增） */
